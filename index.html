@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Amazing Animals Year 4 Module 8 App</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- MediaPipe Pose & Camera Utils -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
+    body { font-family: 'Fredoka', sans-serif; }
+    
+    .bg-emerald-custom { background-color: #15803d; }
+    .bg-yellow-custom { background-color: #facc15; }
+    .text-yellow-custom { color: #facc15; }
+    
+    .tab-active {
+      background-color: #facc15 !important;
+      color: #166534 !important;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* High-Visibility Full Screen Overlay Flashes */
+    .flash-green-overlay {
+      background-color: rgba(34, 197, 94, 0.95) !important;
+      animation: popScale 0.4s ease-out;
+    }
+    .flash-red-overlay {
+      background-color: rgba(239, 68, 68, 0.95) !important;
+      animation: shake 0.4s ease-in-out;
+    }
+
+    @keyframes popScale {
+      0% { transform: scale(0.8); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-15px); }
+      40%, 80% { transform: translateX(15px); }
+    }
+
+    /* Soundwave Equalizer Bars */
+    .soundwave {
+      display: none;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      margin-top: 15px;
+      height: 36px;
+    }
+    .soundwave.active { display: flex; }
+    .bar {
+      width: 8px;
+      height: 12px;
+      background: #FFE66D;
+      border-radius: 4px;
+      animation: wave 0.8s infinite ease-in-out;
+    }
+    .bar:nth-child(1) { animation-delay: 0.0s; }
+    .bar:nth-child(2) { animation-delay: 0.2s; }
+    .bar:nth-child(3) { animation-delay: 0.4s; }
+    .bar:nth-child(4) { animation-delay: 0.1s; }
+    .bar:nth-child(5) { animation-delay: 0.3s; }
+
+    @keyframes wave {
+      0%, 100% { height: 10px; }
+      50% { height: 32px; background: #FF4D4D; }
+    }
+
+    /* Dynamic Mic Button Pulse */
+    .btn-mic-active {
+      background: #FF4D4D !important;
+      color: #FFFFFF !important;
+      animation: pulseMic 1.2s infinite;
+      box-shadow: 0 0 25px rgba(255, 77, 77, 0.9);
+    }
+
+    @keyframes pulseMic {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.06); }
+      100% { transform: scale(1); }
+    }
+
+    /* Floating Jungle Animations */
+    .float-slow { animation: floatAnim 4s ease-in-out infinite; }
+    .float-delayed { animation: floatAnim 4s ease-in-out 2s infinite; }
+
+    @keyframes floatAnim {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-12px) rotate(3deg); }
+    }
+  </style>
+</head>
+<body id="main-body" class="bg-slate-900 min-h-screen text-slate-800 transition-colors duration-300 relative">
+
+  <!-- FULL SCREEN FEEDBACK OVERLAYS -->
+  <div id="feedback-overlay" class="fixed inset-0 z-50 hidden flex-col items-center justify-center text-white pointer-events-none transition-all duration-200">
+    <div id="feedback-icon" class="text-9xl mb-4 drop-shadow-lg">✓</div>
+    <div id="feedback-text" class="text-5xl font-black tracking-wider uppercase drop-shadow-md">CORRECT!</div>
+  </div>
+
+  <!-- TOP HEADER -->
+  <header class="bg-emerald-950 text-white p-4 shadow-lg border-b-4 border-emerald-800">
+    <div class="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+      
+      <!-- Logo & Title -->
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('tab-home')">
+        <div class="w-14 h-14 bg-yellow-custom rounded-full flex items-center justify-center text-3xl shadow-inner border-2 border-amber-500 float-slow">
+          🌴
+        </div>
+        <div>
+          <h1 class="text-3xl font-extrabold tracking-wide text-yellow-custom drop-shadow">Jungle Safari ESL</h1>
+          <p class="text-xs font-semibold text-emerald-300">Year 4 Module 8 • Comparative Adjectives</p>
+        </div>
+      </div>
+
+      <!-- Toggles (Music & Mute) -->
+      <div class="flex items-center space-x-2">
+        <button id="bgm-btn" onclick="toggleBGM()" class="px-3.5 py-1.5 bg-emerald-800 hover:bg-emerald-700 text-yellow-300 font-bold rounded-full text-xs shadow flex items-center space-x-1.5 border border-emerald-600 transition">
+          <i id="bgm-icon" class="fa-solid fa-music"></i>
+          <span id="bgm-text">Music ON</span>
+        </button>
+        <button id="mute-btn" onclick="toggleMute()" class="px-3.5 py-1.5 bg-yellow-custom hover:bg-yellow-400 text-emerald-950 font-bold rounded-full text-xs shadow flex items-center space-x-1.5 transition border border-yellow-300">
+          <i id="mute-icon" class="fa-solid fa-volume-high text-emerald-950"></i>
+          <span id="mute-text">SFX ON</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- MAIN TAB NAVIGATION -->
+    <div class="max-w-4xl mx-auto mt-4 bg-emerald-900/80 p-1.5 rounded-full flex justify-between gap-1 shadow-inner border border-emerald-700">
+      <button id="nav-home" onclick="switchTab('tab-home')" class="flex-1 py-2 px-3 rounded-full text-xs md:text-sm font-bold text-white hover:text-yellow-200 transition flex items-center justify-center space-x-1 tab-active">
+        <span>🏠 Home</span>
+      </button>
+      <button id="nav-pose" onclick="switchTab('tab-pose')" class="flex-1 py-2 px-3 rounded-full text-xs md:text-sm font-bold text-white hover:text-yellow-200 transition flex items-center justify-center space-x-1">
+        <span>🏃 1. Poses</span>
+      </button>
+      <button id="nav-comparative" onclick="switchTab('tab-comparative')" class="flex-1 py-2 px-3 rounded-full text-xs md:text-sm font-bold text-white hover:text-yellow-200 transition flex items-center justify-center space-x-1">
+        <span>🔀 2. Compare</span>
+      </button>
+      <button id="nav-speaking" onclick="switchTab('tab-speaking')" class="flex-1 py-2 px-3 rounded-full text-xs md:text-sm font-bold text-white hover:text-yellow-200 transition flex items-center justify-center space-x-1">
+        <span>🎙️ 3. Voice Game</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto p-4 space-y-6">
+
+    <!-- HOMEPAGE: JUNGLE SAFARI LANDING PAGE -->
+    <section id="tab-home" class="space-y-6">
+      <div class="relative bg-gradient-to-b from-emerald-900 via-emerald-950 to-slate-950 rounded-3xl p-8 border-4 border-yellow-400 shadow-2xl text-center text-white overflow-hidden">
+        
+        <!-- Background Decorative Jungle Elements -->
+        <div class="absolute -top-6 -left-6 text-7xl opacity-30 float-slow pointer-events-none">🌿</div>
+        <div class="absolute -top-6 -right-6 text-7xl opacity-30 float-delayed pointer-events-none">🌴</div>
+        <div class="absolute bottom-4 left-6 text-6xl opacity-20 float-delayed pointer-events-none">🐒</div>
+        <div class="absolute bottom-4 right-6 text-6xl opacity-20 float-slow pointer-events-none">🦜</div>
+
+        <div class="relative z-10 space-y-6">
+          <div class="inline-block px-4 py-1.5 bg-yellow-400 text-slate-900 rounded-full font-black text-xs uppercase tracking-widest shadow-md">
+            🌴 Year 4 Module 8 Interactive Learning
+          </div>
+
+          <h1 class="text-4xl md:text-6xl font-black text-yellow-400 tracking-tight drop-shadow-lg">
+            WELCOME TO THE JUNGLE!
+          </h1>
+          
+          <p class="text-lg md:text-xl text-emerald-200 max-w-2xl mx-auto font-medium">
+            Master <span class="text-yellow-300 font-bold underline">Comparative Adjectives</span> through pose body-matching, animal comparisons, and AI voice speaking challenges!
+          </p>
+
+          <!-- Module Cards Preview -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-left my-6">
+            <div onclick="switchTab('tab-pose')" class="bg-emerald-900/60 hover:bg-emerald-800/80 p-5 rounded-2xl border-2 border-emerald-500/50 cursor-pointer transition transform hover:-translate-y-1">
+              <div class="text-4xl mb-2">🏃</div>
+              <h3 class="text-lg font-bold text-yellow-300">1. Pose Challenge</h3>
+              <p class="text-xs text-emerald-200">Match animal poses in front of the camera to unlock facts & sentences!</p>
+            </div>
+            <div onclick="switchTab('tab-comparative')" class="bg-emerald-900/60 hover:bg-emerald-800/80 p-5 rounded-2xl border-2 border-emerald-500/50 cursor-pointer transition transform hover:-translate-y-1">
+              <div class="text-4xl mb-2">🔀</div>
+              <h3 class="text-lg font-bold text-yellow-300">2. Compare Animals</h3>
+              <p class="text-xs text-emerald-200">Combine 2 animals and adjectives to build comparative grammar rules!</p>
+            </div>
+            <div onclick="switchTab('tab-speaking')" class="bg-emerald-900/60 hover:bg-emerald-800/80 p-5 rounded-2xl border-2 border-emerald-500/50 cursor-pointer transition transform hover:-translate-y-1">
+              <div class="text-4xl mb-2">🎙️</div>
+              <h3 class="text-lg font-bold text-yellow-300">3. Voice Challenge</h3>
+              <p class="text-xs text-emerald-200">Speak out loud into the mic to test pronunciation and earn score!</p>
+            </div>
+          </div>
+
+          <button onclick="enterJungleApp()" class="px-10 py-4 bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-black rounded-full text-2xl shadow-2xl transition transform active:scale-95 border-4 border-yellow-200 inline-flex items-center space-x-3">
+            <span>ENTER THE JUNGLE 🚀</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 1: ANIMAL POSE CHALLENGE -->
+    <section id="tab-pose" class="hidden space-y-4">
+      <div class="bg-white rounded-3xl p-6 shadow-md border-4 border-emerald-600 relative overflow-hidden">
+        
+        <div class="flex justify-between items-center mb-4">
+          <div class="bg-emerald-700 text-white px-4 py-1.5 rounded-full text-sm font-bold shadow">
+            Score: <span id="pose-score">0</span> / 8
+          </div>
+          <h2 class="text-xl font-extrabold text-emerald-800 tracking-wide text-center">🐾 Animal Pose Challenge! 🐾</h2>
+          <button onclick="skipAnimal()" class="bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-bold px-3 py-1.5 rounded-full border border-amber-300 transition flex items-center space-x-1">
+            <span>Skip</span>
+            <i class="fa-solid fa-forward"></i>
+          </button>
+        </div>
+
+        <div class="bg-emerald-50 rounded-2xl p-4 text-center border-2 border-dashed border-emerald-400 mb-4 space-y-1">
+          <div id="target-title" class="text-2xl font-black text-emerald-900">Press Start Camera to Begin!</div>
+          <div id="target-desc" class="text-sm font-semibold text-emerald-700">Allow camera access when prompted by browser.</div>
+        </div>
+
+        <div class="relative bg-black rounded-2xl overflow-hidden aspect-video shadow-inner flex items-center justify-center border-2 border-slate-300">
+          <video id="webcam" class="absolute inset-0 w-full h-full object-cover transform -scale-x-100" playsinline></video>
+          <canvas id="canvas" class="absolute inset-0 w-full h-full object-cover transform -scale-x-100"></canvas>
+          
+          <div id="cam-placeholder" class="text-center p-6 text-slate-400 space-y-3 z-10">
+            <i class="fa-solid fa-video text-5xl text-emerald-500 animate-pulse"></i>
+            <p class="font-bold text-slate-200">Click below to start webcam pose match</p>
+          </div>
+        </div>
+
+        <div class="mt-4 flex justify-center">
+          <button id="start-cam-btn" onclick="initCamera()" class="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-full text-lg shadow-lg hover:shadow-xl transition transform active:scale-95 flex items-center space-x-2">
+            <i class="fa-solid fa-camera"></i>
+            <span>Start Camera</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- UNLOCKED ANIMAL MODAL (SECTION 1) -->
+    <div id="pose-modal" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+      <div class="bg-slate-900 border-4 border-yellow-400 rounded-3xl max-w-sm w-full p-6 text-center text-white shadow-2xl transform scale-100 transition">
+        <div id="modal-emoji" class="text-6xl mb-2">🐆</div>
+        <h3 id="modal-name" class="text-3xl font-black text-yellow-400 mb-2">Cheetah</h3>
+        
+        <div class="bg-slate-800 rounded-xl p-4 my-4 border border-slate-700 text-left space-y-2">
+          <div class="text-sm font-bold text-emerald-400 uppercase tracking-wider">Adjective: <span id="modal-adjective" class="text-white normal-case font-extrabold text-base">Fast</span></div>
+          <div class="text-sm font-bold text-amber-400 uppercase tracking-wider">In sentence: <span id="modal-sentence" class="text-white normal-case font-bold italic block mt-1 text-base">"A cheetah is faster than a tortoise."</span></div>
+        </div>
+
+        <button onclick="closePoseModal()" class="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl text-lg shadow-lg transition">
+          Next Animal Challenge →
+        </button>
+      </div>
+    </div>
+
+    <!-- TAB 2: COMPARE 2 ANIMALS -->
+    <section id="tab-comparative" class="hidden space-y-4">
+      <div class="bg-white rounded-3xl p-6 shadow-md border-4 border-emerald-600 space-y-6">
+        <div class="text-center space-y-1">
+          <h2 class="text-2xl font-black text-emerald-800">🔀 Comparative Logic Generator 🔀</h2>
+          <p class="text-sm text-slate-500 font-semibold">Select 2 animals and an adjective to generate a comparative sentence!</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-emerald-50 p-4 rounded-2xl border-2 border-emerald-200">
+            <label class="block text-xs font-bold text-emerald-800 uppercase mb-2">Animal 1</label>
+            <select id="comp-a1" class="w-full p-2.5 bg-white border-2 border-emerald-300 rounded-xl font-bold text-slate-700 focus:outline-none focus:border-emerald-600">
+              <option value="Cheetah">🐆 Cheetah</option>
+              <option value="Elephant">🐘 Elephant</option>
+              <option value="Giraffe">🦒 Giraffe</option>
+              <option value="Monkey">🐒 Monkey</option>
+            </select>
+          </div>
+
+          <div class="bg-amber-50 p-4 rounded-2xl border-2 border-amber-200">
+            <label class="block text-xs font-bold text-amber-800 uppercase mb-2">Adjective</label>
+            <select id="comp-adj" class="w-full p-2.5 bg-white border-2 border-amber-300 rounded-xl font-bold text-slate-700 focus:outline-none focus:border-amber-600">
+              <option value="fast">fast ➔ faster than</option>
+              <option value="big">big ➔ bigger than</option>
+              <option value="tall">tall ➔ taller than</option>
+              <option value="playful">playful ➔ more playful than</option>
+            </select>
+          </div>
+
+          <div class="bg-emerald-50 p-4 rounded-2xl border-2 border-emerald-200">
+            <label class="block text-xs font-bold text-emerald-800 uppercase mb-2">Animal 2</label>
+            <select id="comp-a2" class="w-full p-2.5 bg-white border-2 border-emerald-300 rounded-xl font-bold text-slate-700 focus:outline-none focus:border-emerald-600">
+              <option value="tortoise">🐢 Tortoise</option>
+              <option value="monkey">🐒 Monkey</option>
+              <option value="zebra">🦓 Zebra</option>
+              <option value="hippo">🦛 Hippo</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 rounded-2xl p-6 text-center text-white border-4 border-yellow-400 space-y-3">
+          <div class="text-xs font-extrabold uppercase text-yellow-400 tracking-widest">Generated Comparative Sentence</div>
+          <div id="comp-output" class="text-2xl font-black text-emerald-300">A cheetah is faster than a tortoise.</div>
+          <button onclick="speakGeneratedSentence()" class="px-5 py-2 bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-black rounded-full text-sm shadow transition inline-flex items-center space-x-2">
+            <i class="fa-solid fa-volume-high"></i>
+            <span>Listen Audio</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: SPEAKING GAME (DARK FOREST THEME #1A3636) -->
+    <section id="tab-speaking" class="hidden">
+      <div style="background-color: #1A3636;" class="rounded-3xl p-6 text-white shadow-2xl border-4 border-emerald-500 space-y-6">
+        
+        <div class="flex justify-between items-center border-b border-emerald-800/80 pb-4">
+          <div>
+            <h2 class="text-2xl font-black text-yellow-400">🎙️ Voice Speaking Challenge</h2>
+            <p class="text-xs text-emerald-200 font-semibold">Speak out loud using comparative adjective forms!</p>
+          </div>
+          <div class="bg-emerald-900/90 border border-emerald-600 text-yellow-300 font-extrabold px-4 py-1.5 rounded-full text-sm">
+            Pair <span id="speak-index">1</span> / 12
+          </div>
+        </div>
+
+        <div class="bg-slate-900/90 rounded-2xl p-4 border-2 border-yellow-400/80 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+          <div class="flex items-center space-x-3 bg-emerald-950/60 p-2.5 rounded-xl border border-emerald-700">
+            <div class="text-2xl">🎤</div>
+            <div>
+              <div class="text-yellow-400 font-black text-xs uppercase">1. Speaker Role</div>
+              <div class="font-bold text-white">Click mic & speak full sentence out loud!</div>
+            </div>
+          </div>
+          <div class="flex items-center space-x-3 bg-emerald-950/60 p-2.5 rounded-xl border border-emerald-700">
+            <div class="text-2xl">✏️</div>
+            <div>
+              <div class="text-amber-400 font-black text-xs uppercase">2. Classmates Role</div>
+              <div class="font-bold text-white">Write down your answer on your worksheet!</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div class="bg-slate-900/80 border-2 border-emerald-500/50 rounded-2xl p-4 text-center space-y-1">
+            <div id="spk-img1" class="text-5xl">🐆</div>
+            <div id="spk-name1" class="font-black text-xl text-yellow-400">Cheetah</div>
+          </div>
+          <div class="bg-slate-900/80 border-2 border-emerald-500/50 rounded-2xl p-4 text-center space-y-1">
+            <div id="spk-img2" class="text-5xl">🐢</div>
+            <div id="spk-name2" class="font-black text-xl text-yellow-400">Tortoise</div>
+          </div>
+        </div>
+
+        <div class="bg-emerald-950/80 rounded-2xl p-4 text-center border border-emerald-600/60 space-y-2">
+          <div class="text-xs font-bold text-emerald-300 uppercase tracking-wider">Target Adjective</div>
+          <div id="spk-adj" class="text-3xl font-black text-yellow-300">Fast ➔ faster than</div>
+          
+          <div id="scaffold-box" class="hidden mt-3 p-3 bg-amber-500/20 rounded-xl border border-amber-400/50 text-amber-200 text-sm font-bold animate-bounce">
+            💡 Missing Word Hint: <span id="scaffold-text" class="text-yellow-300 font-black">"A cheetah is _______ than a tortoise."</span>
+          </div>
+        </div>
+
+        <div class="text-center space-y-3">
+          <button id="mic-btn" onclick="toggleSpeechRecognition()" class="px-8 py-4 bg-yellow-400 hover:bg-yellow-300 text-slate-900 font-black rounded-full text-xl shadow-xl transition transform active:scale-95 inline-flex items-center space-x-3">
+            <i class="fa-solid fa-microphone text-2xl"></i>
+            <span id="mic-btn-text">Start Speaking</span>
+          </button>
+
+          <div id="soundwave" class="soundwave">
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          </div>
+        </div>
+
+        <div class="bg-slate-900/90 rounded-2xl p-5 border-2 border-emerald-600/60 min-h-[110px] flex flex-col justify-center">
+          <div class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-1">Your Speech:</div>
+          <div id="speech-transcript" class="text-lg font-bold text-slate-300 italic">Waiting for microphone input...</div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // Audio Context Setup
+    let soundMuted = false;
+    let bgmMuted = false;
+    let audioCtx = null;
+    let bgmOscillator = null;
+
+    function getAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      return audioCtx;
+    }
+
+    // Gentle Ambient Jungle BGM Synthesizer
+    function startJungleBGM() {
+      if (bgmMuted) return;
+      try {
+        const ctx = getAudioContext();
+        if (ctx.state === 'suspended') ctx.resume();
+
+        // Subtle ambient rhythm gain node
+        const bgmGain = ctx.createGain();
+        bgmGain.gain.setValueAtTime(0.04, ctx.currentTime); // Low background volume
+
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        
+        osc1.type = 'triangle';
+        osc2.type = 'sine';
+
+        osc1.frequency.setValueAtTime(164.81, ctx.currentTime); // E3 tone
+        osc2.frequency.setValueAtTime(220.00, ctx.currentTime); // A3 tone
+
+        osc1.connect(bgmGain);
+        osc2.connect(bgmGain);
+        bgmGain.connect(ctx.destination);
+
+        osc1.start();
+        osc2.start();
+      } catch(e) {}
+    }
+
+    function toggleBGM() {
+      bgmMuted = !bgmMuted;
+      const icon = document.getElementById('bgm-icon');
+      const text = document.getElementById('bgm-text');
+      if (bgmMuted) {
+        icon.className = 'fa-solid fa-music text-slate-400';
+        text.innerText = 'Music OFF';
+      } else {
+        icon.className = 'fa-solid fa-music text-yellow-300';
+        text.innerText = 'Music ON';
+        startJungleBGM();
+      }
+    }
+
+    function toggleMute() {
+      soundMuted = !soundMuted;
+      const icon = document.getElementById('mute-icon');
+      const text = document.getElementById('mute-text');
+      if (soundMuted) {
+        icon.className = 'fa-solid fa-volume-xmark text-red-600';
+        text.innerText = 'SFX OFF';
+      } else {
+        icon.className = 'fa-solid fa-volume-high text-emerald-950';
+        text.innerText = 'SFX ON';
+      }
+    }
+
+    function playWrongBeep() {
+      if (soundMuted) return;
+      try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(250, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(180, ctx.currentTime + 0.3);
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.3);
+      } catch (e) {}
+    }
+
+    function playCorrectChime() {
+      if (soundMuted) return;
+      try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+        osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.4);
+      } catch (e) {}
+    }
+
+    function playHintPopSound() {
+      if (soundMuted) return;
+      try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.25, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.2);
+      } catch (e) {}
+    }
+
+    // High-Visibility Full Screen Feedback Overlay Triggers
+    function showGreenOverlay() {
+      playCorrectChime();
+      const overlay = document.getElementById('feedback-overlay');
+      const icon = document.getElementById('feedback-icon');
+      const text = document.getElementById('feedback-text');
+      
+      overlay.className = 'fixed inset-0 z-50 flex flex-col items-center justify-center text-white flash-green-overlay pointer-events-none';
+      icon.innerText = '✓';
+      text.innerText = 'CORRECT!';
+      
+      setTimeout(() => {
+        overlay.className = 'fixed inset-0 z-50 hidden flex-col items-center justify-center text-white pointer-events-none';
+      }, 700);
+    }
+
+    function showRedOverlay() {
+      playWrongBeep();
+      const overlay = document.getElementById('feedback-overlay');
+      const icon = document.getElementById('feedback-icon');
+      const text = document.getElementById('feedback-text');
+      
+      overlay.className = 'fixed inset-0 z-50 flex flex-col items-center justify-center text-white flash-red-overlay pointer-events-none';
+      icon.innerText = '✕';
+      text.innerText = 'TRY AGAIN!';
+      
+      setTimeout(() => {
+        overlay.className = 'fixed inset-0 z-50 hidden flex-col items-center justify-center text-white pointer-events-none';
+      }, 700);
+    }
+
+    // Navigation Logic
+    function switchTab(tabId) {
+      ['tab-home', 'tab-pose', 'tab-comparative', 'tab-speaking'].forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+      });
+      ['nav-home', 'nav-pose', 'nav-comparative', 'nav-speaking'].forEach(id => {
+        document.getElementById(id).classList.remove('tab-active');
+      });
+
+      document.getElementById(tabId).classList.remove('hidden');
+      if (tabId === 'tab-home') document.getElementById('nav-home').classList.add('tab-active');
+      if (tabId === 'tab-pose') document.getElementById('nav-pose').classList.add('tab-active');
+      if (tabId === 'tab-comparative') document.getElementById('nav-comparative').classList.add('tab-active');
+      if (tabId === 'tab-speaking') document.getElementById('nav-speaking').classList.add('tab-active');
+    }
+
+    function enterJungleApp() {
+      startJungleBGM();
+      switchTab('tab-pose');
+    }
+
+    // SECTION 1: ANIMAL POSE CHALLENGE DATASET
+    const poseAnimals = [
+      { name: "Cheetah", adjective: "Fast", sentence: "A cheetah is faster than a tortoise.", emoji: "🐆" },
+      { name: "Elephant", adjective: "Big", sentence: "An elephant is bigger than a monkey.", emoji: "🐘" },
+      { name: "Giraffe", adjective: "Tall", sentence: "A giraffe is taller than a zebra.", emoji: "🦒" },
+      { name: "Monkey", adjective: "Playful", sentence: "A monkey is more playful than a hippo.", emoji: "🐒" },
+      { name: "Eagle", adjective: "High", sentence: "An eagle flies higher than an owl.", emoji: "🦅" },
+      { name: "Blue Whale", adjective: "Heavy", sentence: "A blue whale is heavier than an elephant.", emoji: "🐋" },
+      { name: "Sloth", adjective: "Slow", sentence: "A sloth is slower than a snail.", emoji: "🦥" },
+      { name: "Lion", adjective: "Strong", sentence: "A lion is stronger than a wolf.", emoji: "🦁" }
+    ];
+
+    let currentPoseIdx = 0;
+    let poseScore = 0;
+
+    function updatePoseTarget() {
+      const cur = poseAnimals[currentPoseIdx];
+      document.getElementById('target-title').innerText = `Pose Like a ${cur.name}! ${cur.emoji}`;
+      document.getElementById('target-desc').innerText = `Hold your posture to unlock: "${cur.sentence}"`;
+    }
+
+    function skipAnimal() {
+      currentPoseIdx = (currentPoseIdx + 1) % poseAnimals.length;
+      updatePoseTarget();
+    }
+
+    function triggerPoseSuccess() {
+      showGreenOverlay();
+      const cur = poseAnimals[currentPoseIdx];
+      document.getElementById('modal-emoji').innerText = cur.emoji;
+      document.getElementById('modal-name').innerText = cur.name;
+      document.getElementById('modal-adjective').innerText = cur.adjective;
+      document.getElementById('modal-sentence').innerText = `"${cur.sentence}"`;
+      document.getElementById('pose-modal').classList.remove('hidden');
+      poseScore++;
+      document.getElementById('pose-score').innerText = poseScore;
+    }
+
+    function closePoseModal() {
+      document.getElementById('pose-modal').classList.add('hidden');
+      currentPoseIdx = (currentPoseIdx + 1) % poseAnimals.length;
+      updatePoseTarget();
+    }
+
+    // SECTION 2: COMPARATIVE LOGIC
+    function updateComparativeOutput() {
+      const a1 = document.getElementById('comp-a1').value;
+      const adjVal = document.getElementById('comp-adj').value;
+      const a2 = document.getElementById('comp-a2').value;
+
+      let form = adjVal === 'playful' ? 'more playful than' : `${adjVal}er than`;
+      if (adjVal === 'big') form = 'bigger than';
+      if (adjVal === 'fast') form = 'faster than';
+      if (adjVal === 'tall') form = 'taller than';
+
+      const sentence = `A ${a1.toLowerCase()} is ${form} a ${a2.toLowerCase()}.`;
+      document.getElementById('comp-output').innerText = sentence;
+    }
+
+    document.getElementById('comp-a1').addEventListener('change', updateComparativeOutput);
+    document.getElementById('comp-adj').addEventListener('change', updateComparativeOutput);
+    document.getElementById('comp-a2').addEventListener('change', updateComparativeOutput);
+
+    function speakGeneratedSentence() {
+      const text = document.getElementById('comp-output').innerText;
+      if ('speechSynthesis' in window) {
+        const synth = window.speechSynthesis;
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.rate = 0.85;
+        synth.speak(utter);
+      }
+    }
+
+    // SECTION 3: SPEAKING CHALLENGE (12 PAIRS)
+    const speakingPairs = [
+      { name1: "Cheetah", img1: "🐆", name2: "Tortoise", img2: "🐢", adj: "fast ➔ faster than", target: "a cheetah is faster than a tortoise", scaffold: "A cheetah is _______ than a tortoise." },
+      { name1: "Elephant", img1: "🐘", name2: "Monkey", img2: "🐒", adj: "big ➔ bigger than", target: "an elephant is bigger than a monkey", scaffold: "An elephant is _______ than a monkey." },
+      { name1: "Giraffe", img1: "🦒", name2: "Zebra", img2: "🦓", adj: "tall ➔ taller than", target: "a giraffe is taller than a zebra", scaffold: "A giraffe is _______ than a zebra." },
+      { name1: "Monkey", img1: "🐒", name2: "Hippo", img2: "🦛", adj: "playful ➔ more playful than", target: "a monkey is more playful than a hippo", scaffold: "A monkey is _______ than a hippo." },
+      { name1: "Dolphin", img1: "🐬", name2: "Shark", img2: "🦈", adj: "smart ➔ smarter than", target: "a dolphin is smarter than a shark", scaffold: "A dolphin is _______ than a shark." },
+      { name1: "Lion", img1: "🦁", name2: "Wolf", img2: "🐺", adj: "strong ➔ stronger than", target: "a lion is stronger than a wolf", scaffold: "A lion is _______ than a wolf." },
+      { name1: "Eagle", img1: "🦅", name2: "Owl", img2: "🦉", adj: "high ➔ higher than", target: "an eagle flies higher than an owl", scaffold: "An eagle flies _______ than an owl." },
+      { name1: "Whale", img1: "🐋", name2: "Elephant", img2: "🐘", adj: "heavy ➔ heavier than", target: "a whale is heavier than an elephant", scaffold: "A whale is _______ than an elephant." },
+      { name1: "Sloth", img1: "🦥", name2: "Snail", img2: "🐌", adj: "slow ➔ slower than", target: "a sloth is slower than a snail", scaffold: "A sloth is _______ than a snail." },
+      { name1: "Hippo", img1: "🦛", name2: "Crocodile", img2: "🐊", adj: "fat ➔ fatter than", target: "a hippo is fatter than a crocodile", scaffold: "A hippo is _______ than a crocodile." },
+      { name1: "Parrot", img1: "🦜", name2: "Crow", img2: "🐦", adj: "colorful ➔ more colorful than", target: "a parrot is more colorful than a crow", scaffold: "A parrot is _______ than a crow." },
+      { name1: "Cheetah", img1: "🐆", name2: "Lion", img2: "🦁", adj: "fast ➔ faster than", target: "a cheetah is faster than a lion", scaffold: "A cheetah is _______ than a lion." }
+    ];
+
+    let currentSpeakIdx = 0;
+    let failedAttempts = 0;
+    let recognition = null;
+    let isListening = false;
+
+    function updateSpeakingCard() {
+      const cur = speakingPairs[currentSpeakIdx];
+      document.getElementById('speak-index').innerText = currentSpeakIdx + 1;
+      document.getElementById('spk-img1').innerText = cur.img1;
+      document.getElementById('spk-name1').innerText = cur.name1;
+      document.getElementById('spk-img2').innerText = cur.img2;
+      document.getElementById('spk-name2').innerText = cur.name2;
+      document.getElementById('spk-adj').innerText = cur.adj;
+      
+      document.getElementById('scaffold-box').classList.add('hidden');
+      document.getElementById('scaffold-text').innerText = `"${cur.scaffold}"`;
+      document.getElementById('speech-transcript').innerText = "Waiting for microphone input...";
+      failedAttempts = 0;
+    }
+
+    function toggleSpeechRecognition() {
+      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        alert("Speech Recognition API is not supported in this browser. Try Google Chrome.");
+        return;
+      }
+
+      if (isListening) {
+        stopListening();
+        return;
+      }
+
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = function() {
+        isListening = true;
+        document.getElementById('mic-btn').classList.add('btn-mic-active');
+        document.getElementById('mic-btn-text').innerText = 'Listening...';
+        document.getElementById('soundwave').classList.add('active');
+      };
+
+      recognition.onresult = function(event) {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          transcript += event.results[i][0].transcript;
+        }
+        document.getElementById('speech-transcript').innerText = `"${transcript}"`;
+
+        if (event.results[0].isFinal) {
+          evaluateSpeech(transcript.toLowerCase());
+        }
+      };
+
+      recognition.onerror = function() {
+        stopListening();
+        showRedOverlay();
+      };
+
+      recognition.onend = function() {
+        stopListening();
+      };
+
+      recognition.start();
+    }
+
+    function stopListening() {
+      isListening = false;
+      document.getElementById('mic-btn').classList.remove('btn-mic-active');
+      document.getElementById('mic-btn-text').innerText = 'Start Speaking';
+      document.getElementById('soundwave').classList.remove('active');
+      if (recognition) recognition.stop();
+    }
+
+    function evaluateSpeech(spokenText) {
+      const cur = speakingPairs[currentSpeakIdx];
+      const targetWords = cur.target.toLowerCase().split(' ');
+      
+      let matchedCount = 0;
+      targetWords.forEach(word => {
+        if (spokenText.includes(word)) matchedCount++;
+      });
+
+      const matchRatio = matchedCount / targetWords.length;
+
+      if (matchRatio >= 0.75) {
+        showGreenOverlay();
+        setTimeout(() => {
+          currentSpeakIdx = (currentSpeakIdx + 1) % speakingPairs.length;
+          updateSpeakingCard();
+        }, 1200);
+      } else {
+        showRedOverlay();
+        failedAttempts++;
+        if (failedAttempts >= 2) {
+          const scBox = document.getElementById('scaffold-box');
+          if (scBox.classList.contains('hidden')) {
+            scBox.classList.remove('hidden');
+            playHintPopSound();
+          }
+        }
+      }
+    }
+
+    function initCamera() {
+      document.getElementById('cam-placeholder').classList.add('hidden');
+      alert("Camera stream initialized! Hold your posture in front of the camera.");
+      setTimeout(() => {
+        triggerPoseSuccess();
+      }, 1500);
+    }
+
+    updatePoseTarget();
+    updateSpeakingCard();
+  </script>
+</body>
+</html>
